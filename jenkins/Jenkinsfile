@@ -36,32 +36,30 @@ pipeline {
         
         stage('Deploy with Ansible') {
             steps {
-                dir('ansible') {
-                    script {
-                        // Write vault password securely
-                        writeFile file: '/tmp/.vault_pass', text: VAULT_PASS
-                        
-                        // Get VM1 IP from inventory
-                        def vm1Ip = sh(
-                            script: "grep ansible_host inventory | awk '{print \$2}' | cut -d= -f2",
-                            returnStdout: true
-                        ).trim()
-                        
-                        // Copy Docker image to VM1
-                        sh """
-                            scp -o StrictHostKeyChecking=no /tmp/flask-app.tar deploy@${vm1Ip}:/tmp/
-                        """
-                        
-                        // Deploy with Ansible
-                        sh """
-                            ansible-playbook -i inventory playbooks/deploy.yml \
-                                --vault-password-file=/tmp/.vault_pass \
-                                -e "docker_tag=latest"
-                        """
-                        
-                        // Cleanup
-                        sh "rm -f /tmp/.vault_pass /tmp/flask-app.tar"
-                    }
+                script {
+                    // Write vault password securely
+                    writeFile file: '/tmp/.vault_pass', text: VAULT_PASS
+                    
+                    // Get VM1 IP from inventory
+                    def vm1Ip = sh(
+                        script: "grep ansible_host ansible/inventory | awk '{print \$2}' | cut -d= -f2",
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Copy Docker image to VM1
+                    sh """
+                        scp -o StrictHostKeyChecking=no /tmp/flask-app.tar deploy@${vm1Ip}:/tmp/
+                    """
+                    
+                    // Deploy with Ansible - RUN FROM PROJECT ROOT
+                    sh """
+                        ansible-playbook -i ansible/inventory ansible/playbooks/deploy.yml \
+                            --vault-password-file=/tmp/.vault_pass \
+                            -e "docker_tag=latest"
+                    """
+                    
+                    // Cleanup
+                    sh "rm -f /tmp/.vault_pass /tmp/flask-app.tar"
                 }
             }
         }
