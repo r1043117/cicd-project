@@ -36,21 +36,32 @@ pipeline {
         
         stage('Deploy with Ansible') {
             steps {
-                script {
-                    sh """
-                        cd ansible
-                        echo '${VAULT_PASS}' > /tmp/.vault_pass
+                dir('ansible') {
+                    script {
+                        // Write vault password securely
+                        writeFile file: '/tmp/.vault_pass', text: VAULT_PASS
                         
-                        # Copy image to VM1
-                        scp -o StrictHostKeyChecking=no /tmp/flask-app.tar deploy@\$(grep ansible_host inventory | awk '{print \$2}' | cut -d= -f2):/tmp/
+                        // Get VM1 IP from inventory
+                        def vm1Ip = sh(
+                            script: "grep ansible_host inventory | awk '{print \$2}' | cut -d= -f2",
+                            returnStdout: true
+                        ).trim()
                         
-                        # Load image on VM1 and deploy
-                        ansible-playbook -i inventory playbooks/deploy.yml \
-                            --vault-password-file=/tmp/.vault_pass \
-                            -e "docker_tag=latest"
+                        // Copy Docker image to VM1
+                        sh """
+                            scp -o StrictHostKeyChecking=no /tmp/flask-app.tar deploy@${vm1Ip}:/tmp/
+                        """
                         
-                        rm -f /tmp/.vault_pass /tmp/flask-app.tar
-                    """
+                        // Deploy with Ansible
+                        sh """
+                            ansible-playbook -i inventory playbooks/deploy.yml \
+                                --vault-password-file=/tmp/.vault_pass \
+                                -e "docker_tag=latest"
+                        """
+                        
+                        // Cleanup
+                        sh "rm -f /tmp/.vault_pass /tmp/flask-app.tar"
+                    }
                 }
             }
         }
