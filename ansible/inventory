@@ -1,5 +1,5 @@
 [app_servers]
-vm1 ansible_host=REPLACE_WITH_VM1_IP ansible_user=deploy ansible_python_interpreter=/usr/bin/python3
+vm1 ansible_host=192.168.129.214 ansible_user=deploy ansible_python_interpreter=/usr/bin/python3
 
 [app_servers:vars]
 ansible_ssh_private_key_file=~/.ssh/id_rsa
