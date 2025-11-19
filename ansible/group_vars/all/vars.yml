@@ -1,0 +1,6 @@
+---
+# Non-sensitive variables
+docker_image: "cicd-flask-app"
+docker_tag: "latest"
+app_port: 5000
+environment: "production"

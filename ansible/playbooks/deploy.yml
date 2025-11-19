@@ -1,0 +1,39 @@
+---
+- name: Deploy Flask Application
+  hosts: app_servers
+  become: yes
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Install Docker Python package
+      apt:
+        name: python3-docker
+        state: present
+      
+    - name: Pull Docker image (if using registry)
+      docker_image:
+        name: "{{ docker_image }}"
+        tag: "{{ docker_tag }}"
+        source: pull
+      ignore_errors: yes
+      
+    - name: Stop old container
+      docker_container:
+        name: flask-app
+        state: absent
+      ignore_errors: yes
+      
+    - name: Start new container
+      docker_container:
+        name: flask-app
+        image: "{{ docker_image }}:{{ docker_tag }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ app_port }}:5000"
+        env:
+          ENVIRONMENT: "{{ environment }}"
+          DB_PASSWORD: "{{ db_password }}"
+          APP_SECRET_KEY: "{{ app_secret_key }}"

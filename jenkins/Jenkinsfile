@@ -1,0 +1,70 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = 'cicd-flask-app'
+        VAULT_PASS = credentials('ansible-vault-password')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                        docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -f docker/Dockerfile .
+                        docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                    """
+                }
+            }
+        }
+        
+        stage('Save Docker Image') {
+            steps {
+                script {
+                    sh """
+                        docker save ${DOCKER_IMAGE}:latest -o /tmp/flask-app.tar
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy with Ansible') {
+            steps {
+                script {
+                    sh """
+                        cd ansible
+                        echo '${VAULT_PASS}' > /tmp/.vault_pass
+                        
+                        # Copy image to VM1
+                        scp -o StrictHostKeyChecking=no /tmp/flask-app.tar deploy@\$(grep ansible_host inventory | awk '{print \$2}' | cut -d= -f2):/tmp/
+                        
+                        # Load image on VM1 and deploy
+                        ansible-playbook -i inventory playbooks/deploy.yml \
+                            --vault-password-file=/tmp/.vault_pass \
+                            -e "docker_tag=latest"
+                        
+                        rm -f /tmp/.vault_pass /tmp/flask-app.tar
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed!'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
