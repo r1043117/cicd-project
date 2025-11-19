@@ -3,8 +3,8 @@
   hosts: app_servers
   become: yes
   vars_files:
-    - ../group_vars/all/vars.yml
-    - ../group_vars/all/vault.yml
+    - "{{ playbook_dir }}/../group_vars/all/vars.yml"
+    - "{{ playbook_dir }}/../group_vars/all/vault.yml"
 
   tasks:
     - name: Install Docker Python package
@@ -12,12 +12,8 @@
         name: python3-docker
         state: present
       
-    - name: Pull Docker image (if using registry)
-      docker_image:
-        name: "{{ docker_image }}"
-        tag: "{{ docker_tag }}"
-        source: pull
-      ignore_errors: yes
+    - name: Load Docker image from tar
+      shell: docker load -i /tmp/flask-app.tar
       
     - name: Stop old container
       docker_container:
@@ -34,6 +30,6 @@
         ports:
           - "{{ app_port }}:5000"
         env:
-          ENVIRONMENT: "{{ environment }}"
+          ENVIRONMENT: "{{ app_environment }}"
           DB_PASSWORD: "{{ db_password }}"
           APP_SECRET_KEY: "{{ app_secret_key }}"
