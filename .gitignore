@@ -22,5 +22,4 @@ Thumbs.db
 
 # Ansible
 *.retry
-ansible/group_vars/all/vault.yml
 .vault_pass
