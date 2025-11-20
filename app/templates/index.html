@@ -1,16 +1,416 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CI/CD Pipeline Demo</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Pipeline Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-        h1 { color: #2c3e50; }
-        .status { color: #27ae60; font-size: 20px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric {
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-unit {
+            font-size: 1rem;
+            color: #a0aec0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f6ad55, #ed8936);
+        }
+        
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #fc8181, #f56565);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-healthy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status-active {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+        
+        .pipeline-flow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        .pipeline-flow::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: linear-gradient(90deg, #48bb78, #667eea);
+            z-index: 0;
+        }
+        
+        .pipeline-step {
+            background: white;
+            border: 3px solid #48bb78;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+            position: relative;
+            font-size: 1.5rem;
+        }
+        
+        .pipeline-step-label {
+            font-size: 0.75rem;
+            margin-top: 8px;
+            color: #4a5568;
+            text-align: center;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: #718096;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .update-time {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .updating {
+            animation: pulse 1.5s infinite;
+        }
     </style>
 </head>
 <body>
-    <h1>🚀 CI/CD Pipeline is Working!</h1>
-    <p class="status">Environment: {{ environment }}</p>
-    <p>Deployed with Jenkins + Ansible + Docker</p>
+    <div class="container">
+        <header>
+            <h1>🚀 CI/CD Pipeline Dashboard</h1>
+            <p class="subtitle">Automated Deployment & Infrastructure Monitoring</p>
+        </header>
+
+        <div class="dashboard">
+            <!-- VM1 (App Server) -->
+            <div class="card">
+                <h2>🖥️ VM1 - App Server</h2>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-label">CPU</div>
+                        <div class="metric-value" id="vm1-cpu">{{ metrics.vm1.cpu }}</div>
+                        <div class="metric-unit">%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ metrics.vm1.cpu }}%" 
+                                 class="{% if metrics.vm1.cpu > 80 %}danger{% elif metrics.vm1.cpu > 60 %}warning{% endif %}"></div>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Memory</div>
+                        <div class="metric-value" id="vm1-memory">{{ metrics.vm1.memory }}</div>
+                        <div class="metric-unit">%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ metrics.vm1.memory }}%"
+                                 class="{% if metrics.vm1.memory > 80 %}danger{% elif metrics.vm1.memory > 60 %}warning{% endif %}"></div>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Disk</div>
+                        <div class="metric-value" id="vm1-disk">{{ metrics.vm1.disk }}</div>
+                        <div class="metric-unit">%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ metrics.vm1.disk }}%"
+                                 class="{% if metrics.vm1.disk > 80 %}danger{% elif metrics.vm1.disk > 60 %}warning{% endif %}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <span class="status-badge status-healthy">{{ metrics.vm1.status }}</span>
+                </div>
+            </div>
+
+            <!-- VM2 (Jenkins Server) -->
+            <div class="card">
+                <h2>⚙️ VM2 - Jenkins Server</h2>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-label">CPU</div>
+                        <div class="metric-value" id="vm2-cpu">{{ metrics.vm2.cpu }}</div>
+                        <div class="metric-unit">%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ metrics.vm2.cpu }}%"
+                                 class="{% if metrics.vm2.cpu > 80 %}danger{% elif metrics.vm2.cpu > 60 %}warning{% endif %}"></div>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Memory</div>
+                        <div class="metric-value" id="vm2-memory">{{ metrics.vm2.memory }}</div>
+                        <div class="metric-unit">%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ metrics.vm2.memory }}%"
+                                 class="{% if metrics.vm2.memory > 80 %}danger{% elif metrics.vm2.memory > 60 %}warning{% endif %}"></div>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Disk</div>
+                        <div class="metric-value" id="vm2-disk">{{ metrics.vm2.disk }}</div>
+                        <div class="metric-unit">%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ metrics.vm2.disk }}%"
+                                 class="{% if metrics.vm2.disk > 80 %}danger{% elif metrics.vm2.disk > 60 %}warning{% endif %}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <span class="status-badge status-healthy">{{ metrics.vm2.status }}</span>
+                </div>
+            </div>
+
+            <!-- Pipeline Status -->
+            <div class="card">
+                <h2>📦 CI/CD Pipeline</h2>
+                <div class="pipeline-flow">
+                    <div>
+                        <div class="pipeline-step">📝</div>
+                        <div class="pipeline-step-label">GitHub</div>
+                    </div>
+                    <div>
+                        <div class="pipeline-step">🔧</div>
+                        <div class="pipeline-step-label">Jenkins</div>
+                    </div>
+                    <div>
+                        <div class="pipeline-step">🐳</div>
+                        <div class="pipeline-step-label">Docker</div>
+                    </div>
+                    <div>
+                        <div class="pipeline-step">🚀</div>
+                        <div class="pipeline-step-label">Deploy</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <div class="info-row">
+                        <span class="info-label">Version:</span>
+                        <span class="info-value">{{ pipeline.version }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Environment:</span>
+                        <span class="info-value">{{ pipeline.environment }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Containers:</span>
+                        <span class="info-value" id="containers">{{ metrics.containers }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Last Deploy:</span>
+                        <span class="info-value">{{ pipeline.deployed_at }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Components Status -->
+            <div class="card">
+                <h2>✅ Components</h2>
+                <div style="margin-top: 20px;">
+                    <div class="info-row">
+                        <span class="info-label">GitHub:</span>
+                        <span class="status-badge status-active">{{ pipeline.github }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Jenkins:</span>
+                        <span class="status-badge status-active">{{ pipeline.jenkins }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ansible:</span>
+                        <span class="status-badge status-active">{{ pipeline.ansible }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Docker:</span>
+                        <span class="status-badge status-active">{{ pipeline.docker }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Prometheus:</span>
+                        <span class="status-badge status-active">Monitoring</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ansible Vault:</span>
+                        <span class="status-badge status-healthy">Encrypted</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>🔐 Secrets managed by Ansible Vault</strong></p>
+            <p class="update-time">
+                Last updated: <span id="update-time">{{ metrics.timestamp }}</span> • 
+                Auto-refresh every 10 seconds
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh metrics
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                const data = await response.json();
+                
+                // Update VM1
+                document.getElementById('vm1-cpu').textContent = data.vm1.cpu;
+                document.getElementById('vm1-memory').textContent = data.vm1.memory;
+                
+                // Update VM2
+                document.getElementById('vm2-cpu').textContent = data.vm2.cpu;
+                document.getElementById('vm2-memory').textContent = data.vm2.memory;
+                
+                // Update containers
+                document.getElementById('containers').textContent = data.containers;
+                
+                // Update timestamp
+                const time = new Date(data.timestamp);
+                document.getElementById('update-time').textContent = time.toLocaleString();
+                
+            } catch (error) {
+                console.error('Failed to update metrics:', error);
+            }
+        }
+
+        // Update every 10 seconds
+        setInterval(updateMetrics, 10000);
+        
+        // Initial update after 2 seconds
+        setTimeout(updateMetrics, 2000);
+    </script>
 </body>
 </html>

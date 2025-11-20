@@ -33,3 +33,4 @@
           ENVIRONMENT: "{{ app_environment }}"
           DB_PASSWORD: "{{ db_password }}"
           APP_SECRET_KEY: "{{ app_secret_key }}"
+          PROMETHEUS_URL: "http://192.168.129.216:9090"
